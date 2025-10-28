@@ -1,7 +1,9 @@
-from flask import Flask, request, redirect, render_template, session
+from flask import Flask, request, redirect, render_template, session, flash
+from flask import Flask, render_template, request, redirect, url_for, flash
+
 from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
+app = Flask(name)
 app.secret_key = "supersecretkey"
 
 
@@ -30,16 +32,26 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        user = User(username=username, password=password)
-        db.session.add(user)
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        existing_user = User.query.filter_by(username=username).first()
+
+        if existing_user:
+            flash('Користувач уже існує. Увійдіть у свій акаунт.', 'info')
+            return redirect(url_for('login'))  
+
+        new_user = User(username=username, password=password, is_admin=False)
+        db.session.add(new_user)
         db.session.commit()
-        return redirect("/login")
-    return render_template("register.html")
+
+        flash('Реєстрація успішна! Тепер увійдіть у систему.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -79,22 +91,47 @@ def add_review():
 
 @app.route("/reviews")
 def reviews():
-    all_reviews = Review.query.join(User).add_columns(User.username, Review.title, Review.content, Review.id).all()
-    return render_template("reviews.html", reviews=all_reviews, is_admin=session.get("is_admin"))
+    all_reviews = (
+        Review.query.join(User)
+        .add_columns(
+            User.username,
+            Review.title,
+            Review.content,
+            Review.id,
+            Review.user_id
+        )
+        .all()
+    )
+    return render_template(
+        "reviews.html",
+        reviews=all_reviews,
+        is_admin=session.get("is_admin")
+    )
 
 
 @app.route("/delete_review/<int:review_id>")
 def delete_review(review_id):
-    if not session.get("is_admin"):
-        return "Доступ заборонено"
+    if "user_id" not in session:
+        flash("Спочатку увійдіть у систему!", "warning")
+        return redirect("/login")
+
     review = Review.query.get(review_id)
-    if review:
-        db.session.delete(review)
-        db.session.commit()
+    if not review:
+        flash("Відгук не знайдено.", "danger")
+        return redirect("/reviews")
+
+    if not session.get("is_admin") and review.user_id != session["user_id"]:
+        flash("Доступ заборонено.", "danger")
+        return redirect("/reviews")
+
+    db.session.delete(review)
+    db.session.commit()
+    flash("Відгук успішно видалено!", "success")
     return redirect("/reviews")
 
 
-if __name__ == "__main__":
+
+if name == "main":
     with app.app_context():
         db.create_all()  
     app.run(debug=True)
