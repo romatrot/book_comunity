@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: Book Club API
+  version: 1.0.0
+  description: API для керування відгуками в книжковому клубі
+servers:
+  - url: http://localhost:5000
+
+paths:
+  /reviews:
+    post:
+      summary: Створити новий відгук
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreateDTO'
+      responses:
+        '201':
+          description: Відгук створено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDTO'
+    get:
+      summary: Отримати список всіх відгуків
+      responses:
+        '200':
+          description: Список відгуків
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewDTO'
+
+  /reviews/{id}:
+    get:
+      summary: Отримати відгук за ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Відгук знайдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDTO'
+        '404':
+          description: Відгук не знайдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Оновити відгук за ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdateDTO'
+      responses:
+        '200':
+          description: Відгук оновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDTO'
+        '400':
+          description: Некоректні дані
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Відгук не знайдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Видалити відгук за ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Відгук видалено
+        '404':
+          description: Відгук не знайдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ReviewDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        user_id:
+          type: integer
+        username:
+          type: string
+      required:
+        - id
+        - title
+        - content
+        - user_id
+
+    ReviewCreateDTO:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        user_id:
+          type: integer
+      required:
+        - title
+        - content
+        - user_id
+
+    ReviewUpdateDTO:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
