@@ -107,15 +107,22 @@
             {% endif %}
         {% endwith %}
 
-        <form method="post">
-            <label for="title">Назва книги:</label>
-            <input type="text" id="title" name="title" placeholder="Введіть назву книги" required>
+<form method="post">
+    {{ form.hidden_tag() }}
 
-            <label for="content">Ваш відгук:</label>
-            <textarea id="content" name="content" rows="5" placeholder="Напишіть свої враження..." required></textarea>
+    <div class="mb-3">
+        {{ form.title.label }}
+        {{ form.title(class="form-control") }}
+    </div>
 
-            <input type="submit" value="Додати відгук">
-        </form>
+    <div class="mb-3">
+        {{ form.content.label }}
+        {{ form.content(class="form-control") }}
+    </div>
+
+    <button class="btn btn-success w-100">Додати</button>
+</form>
+
 
         <a href="/" class="back-link">← Повернутися на головну</a>
     </div>

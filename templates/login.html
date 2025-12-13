@@ -20,14 +20,16 @@
     {% endwith %}
 
     <form method="post" class="border p-4 rounded shadow-sm bg-light">
+        {{ form.hidden_tag() }}
+
         <div class="mb-3">
-            <label for="username" class="form-label">Логін</label>
-            <input type="text" id="username" name="username" class="form-control" placeholder="Введіть логін" required>
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control", placeholder="Введіть логін") }}
         </div>
 
         <div class="mb-3">
-            <label for="password" class="form-label">Пароль</label>
-            <input type="password" id="password" name="password" class="form-control" placeholder="Введіть пароль" required>
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control", placeholder="Введіть пароль") }}
         </div>
 
         <button type="submit" class="btn btn-warning w-100">Увійти</button>

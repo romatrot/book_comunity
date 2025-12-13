@@ -20,19 +20,22 @@
         {% endif %}
     {% endwith %}
 
-    <form method="post" class="border p-4 rounded shadow-sm bg-light">
-        <div class="mb-3">
-            <label for="username" class="form-label">Логін</label>
-            <input type="text" id="username" name="username" class="form-control" placeholder="Введіть логін" required>
-        </div>
+<form method="post" class="border p-4 rounded shadow-sm bg-light">
+    {{ form.hidden_tag() }}
 
-        <div class="mb-3">
-            <label for="password" class="form-label">Пароль</label>
-            <input type="password" id="password" name="password" class="form-control" placeholder="Введіть пароль" required>
-        </div>
+    <div class="mb-3">
+        {{ form.username.label(class="form-label") }}
+        {{ form.username(class="form-control") }}
+    </div>
 
-        <button type="submit" class="btn btn-primary w-100">Зареєструватися</button>
-    </form>
+    <div class="mb-3">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control") }}
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Зареєструватися</button>
+</form>
+
 
     <div class="text-center mt-3">
         <p>Вже маєте акаунт? <a href="/login" class="text-decoration-none">Увійдіть</a></p>
