@@ -16,7 +16,7 @@
                         <h5 class="mb-1">{{ r.title }}</h5>
                         <p class="mb-1">{{ r.content }}</p>
                         <small class="text-muted">
-                            Автор: {{ r.username }}
+                            Автор: {{ r.author.username }}
                             {% if current_user.is_authenticated and current_user.id == r.user_id %}
                                 <span class="text-success">(Ваш відгук)</span>
                             {% endif %}

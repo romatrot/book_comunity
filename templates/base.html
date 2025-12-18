@@ -14,17 +14,23 @@
                 <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
                     <li><a href="/" class="nav-link px-2 text-secondary">Головна</a></li> 
                     <li><a href="/reviews" class="nav-link px-2 text-white">Відгуки</a></li> 
-                    {% if session.get('user_id') %}
+                    {% if current_user.is_authenticated %}
                         <li><a href="/add_review" class="nav-link px-2 text-white">Додати відгук</a></li> 
                     {% endif %}
                 </ul>  
                 <div class="text-end"> 
-                {% if not session.get('user_id') %}
-                    <a href="/register" class="btn btn-outline-light me-2">Реєстрація</a>
-                    <a href="/login" class="btn btn-warning">Вхід</a>
-                {% else %}
-                    <a href="/logout" class="btn btn-danger">Вихід</a>
-                {% endif %}
+                <div class="text-end">
+                    {% if not current_user.is_authenticated %}
+                        <a href="/register" class="btn btn-outline-light me-2">Реєстрація</a>
+                        <a href="/login" class="btn btn-warning">Вхід</a>
+                    {% else %}
+                        <span class="text-white me-3">
+                            {{ current_user.username }}
+                        </span>
+                        <a href="/logout" class="btn btn-danger">Вихід</a>
+                    {% endif %}
+                </div>
+
                 </div> 
             </div>
         </div>

@@ -12,7 +12,7 @@
         та створювати власну бібліотеку улюблених історій.
     </p>
 
-    {% if session.get('user_id') %}
+    {% if current_user.is_authenticated %}
         <div class="alert alert-success mt-4">
             Вітаємо, <strong>{{ session.get('username', 'користувачу') }}</strong>! 👋  
             Бажаємо приємного читання!

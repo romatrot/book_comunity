@@ -1,48 +1,24 @@
 from flask import Flask, request, redirect, render_template, session, flash, url_for, jsonify, g
-from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required, current_user
-from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField
-from wtforms.validators import DataRequired, Length
 import uuid
 import time
+from models import db, User, Review
+from forms import RegisterForm, LoginForm, ReviewForm
+
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///bookclub.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+
+db.init_app(app)
+
+
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-# --- MODELS ---
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
-    reviews = db.relationship('Review', backref='author', lazy=True)
-
-class Review(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100))
-    content = db.Column(db.Text)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-# --- FORMS ---
-class RegisterForm(FlaskForm):
-    username = StringField("Логін", validators=[DataRequired(), Length(min=3)])
-    password = PasswordField("Пароль", validators=[DataRequired(), Length(min=4)])
-
-class LoginForm(FlaskForm):
-    username = StringField("Логін", validators=[DataRequired()])
-    password = PasswordField("Пароль", validators=[DataRequired()])
-
-class ReviewForm(FlaskForm):
-    title = StringField("Заголовок", validators=[DataRequired()])
-    content = TextAreaField("Текст", validators=[DataRequired(), Length(min=5)])
 
 # --- ID EMPOTENCY STORE ---
 idempotency_store = {}
@@ -51,6 +27,28 @@ idempotency_store = {}
 @app.before_request
 def generate_request_id():
     g.request_id = str(uuid.uuid4())
+
+
+rate_limit = {}
+
+@app.before_request
+def rate_limit_check():
+    ip = request.remote_addr
+    now = time.time()
+
+    window = rate_limit.get(ip, [])
+    window = [t for t in window if now - t < 60]
+
+    if len(window) >= 10:
+        response = redirect(url_for("index"))
+        response.status_code = 429
+        response.headers["Retry-After"] = "10"
+        flash("Забагато запитів. Спробуйте пізніше.", "warning")
+        return response
+
+    window.append(now)
+    rate_limit[ip] = window
+
 
 @app.after_request
 def add_request_id_header(response):
@@ -130,54 +128,45 @@ def logout():
 @app.route("/add_review", methods=["GET", "POST"])
 @login_required
 def add_review():
-    if request.method == "POST":
-        try:
-            key = request.headers.get("Idempotency-Key")
-            if not key:
-                key = str(uuid.uuid4())
-
-            # Ідемпотентність
-            if key in idempotency_store:
-                return jsonify(idempotency_store[key]), 200
-
-            data = request.get_json()
-            if not data:
-                return error_response("No JSON provided", 400)
-
-            title = data.get("title")
-            content = data.get("content")
-            if not title or not content:
-                return error_response("Title and content required", 400)
-
-            review = Review(title=title, content=content, user_id=current_user.id)
-            db.session.add(review)
-            db.session.commit()
-
-            result = {"id": review.id, "title": title, "content": content}
-            idempotency_store[key] = result
-            return jsonify(result), 201
-
-        except Exception as e:
-            return error_response("Server error", 500, str(e))
-
-
     form = ReviewForm()
-    return render_template("add_review.html", form=form)
+
+    # Генеруємо ключ при відкритті форми
+    if request.method == "GET":
+        session["idempotency_key"] = str(uuid.uuid4())
+
+    if form.validate_on_submit():
+        idem_key = request.form.get("idempotency_key")
+
+        # ПОВТОРНИЙ POST
+        if idem_key in idempotency_store:
+            flash("Цей відгук уже був доданий (повторний запит)", "info")
+            return redirect(url_for("reviews"))
+
+        review = Review(
+            title=form.title.data,
+            content=form.content.data,
+            user_id=current_user.id
+        )
+
+        db.session.add(review)
+        db.session.commit()
+
+        # Запамʼятовуємо виконаний запит
+        idempotency_store[idem_key] = review.id
+
+        flash("Відгук успішно додано!", "success")
+        return redirect(url_for("reviews"))
+
+    return render_template(
+        "add_review.html",
+        form=form,
+        idempotency_key=session.get("idempotency_key")
+    )
 
 
 @app.route("/reviews")
 def reviews():
-    all_reviews = (
-        Review.query.join(User)
-        .add_columns(
-            User.username,
-            Review.title,
-            Review.content,
-            Review.id,
-            Review.user_id
-        )
-        .all()
-    )
+    all_reviews = Review.query.all()
     return render_template(
         "reviews.html",
         reviews=all_reviews,
@@ -197,7 +186,6 @@ def delete_review(review_id):
         return redirect("/reviews")
     db.session.delete(review)
     db.session.commit()
-    flash("Відгук успішно видалено!", "success")
     return redirect("/reviews")
 
 

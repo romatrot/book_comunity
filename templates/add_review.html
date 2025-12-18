@@ -110,6 +110,8 @@
 <form method="post">
     {{ form.hidden_tag() }}
 
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+
     <div class="mb-3">
         {{ form.title.label }}
         {{ form.title(class="form-control") }}
@@ -122,6 +124,7 @@
 
     <button class="btn btn-success w-100">Додати</button>
 </form>
+
 
 
         <a href="/" class="back-link">← Повернутися на головну</a>
