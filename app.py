@@ -9,7 +9,10 @@ from forms import RegisterForm, LoginForm, ReviewForm
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///bookclub.db"
+#app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///bookclub.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    "postgresql://postgres:postgres@db:5432/bookclub"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -39,7 +42,7 @@ def rate_limit_check():
     window = rate_limit.get(ip, [])
     window = [t for t in window if now - t < 60]
 
-    if len(window) >= 10:
+    if len(window) >= 100:
         response = redirect(url_for("index"))
         response.status_code = 429
         response.headers["Retry-After"] = "10"
@@ -192,4 +195,5 @@ def delete_review(review_id):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)
+
